@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build --base-href /l3m-tp-signals-2023-2024/",
+    "build": "ng build --base-href /introduction-aux-signaux-l3miage-fathallm/",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
