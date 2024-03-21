@@ -9,7 +9,6 @@ import { DataService } from './data.service';
  * @returns un tableau de T de taille length
  */
 function tab<T>(length: number, f: (i: number) => T): T[] {
-  // à compléter
   return Array.from(Array(length), (_, i) => f(i))
 }
 
@@ -20,6 +19,7 @@ function tab<T>(length: number, f: (i: number) => T): T[] {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AppComponent {
+  title: string = 'l3m-tp-signals-2023-2024';
   /**
    * Question 1 : Définir un signal a produisant des number et initialisé à 0
    * Définir un signal b dérivé de a, produisant des tableau de string, de taille a(), 
@@ -38,7 +38,13 @@ export class AppComponent {
     function rand100(): string { // fonction utilitaire locale
       return Math.floor(Math.random() * 100).toString();
     }
-    // à compléter
+    const a = signal<number>(0);
+    const b = computed<string[]>(() => tab(a(), rand100));
+
+    effect( ()=>console.log( "Question 1 :",a(),b()));
+    for (let i = 1; i <= 3; i++) {
+      this.ds.process( () => a.set(i) );
+    }
   }
 
   
@@ -74,7 +80,35 @@ export class AppComponent {
       { name: "Gloria", marks: [6, 12, 2, 12, 10, 8, 6] },
     ];
 
-    // à compléter
+    const students = signal<readonly Student[]>(L); 
+
+    function averageM(marks: readonly number[]) : number {
+      return marks.reduce((somme, mark) => somme += mark) / marks.length;
+    }
+
+    const studentsWithAverage = computed<readonly StudentWithAverage[]>( () => {
+      return [...students()].map(student => {
+        const average: number = averageM(student.marks);
+
+        return {
+          ...student,
+          average,
+          pass: average >= 10, 
+        }
+      })
+      .sort((a: StudentWithAverage, b: StudentWithAverage) => {
+        return b.average - a.average;
+      });
+    });
+
+    const bestStudent = computed<StudentWithAverage | undefined> ( () => studentsWithAverage().at(0));
+
+    const e = effect( () => console.log("Question 2: ", students(), studentsWithAverage(), bestStudent()));
+
+    this.ds.process(
+      () => students.set([...L, {name: "Mariam", marks: [14, 16, 12, 9]}]),
+      () => students.update( listStudents => listStudents.filter( s => s.name.toLowerCase().includes("a") ) ) 
+    );
   }
 
 
@@ -107,6 +141,27 @@ export class AppComponent {
       { name: "Marseille", temperature: signal({value: 300, unit: '°K'}) },
     ];
 
+    const releve = computed( () =>
+      L.map( station => (
+        {
+          name: station.name, 
+          temperature: (station.temperature().unit === '°K')? + 
+          (station.temperature().value - 273.15).toFixed(1) : (station.temperature().value)
+        })
+      )
+        .sort((a,b)=>a.name.localeCompare(b.name))
+    );
+    
+    const moy = computed( () => +(releve().reduce((som, station) => som + station.temperature, 0) / releve().length).toFixed(1));
+  
+    effect( () => console.log("Question 3:", releve(), moy()));
+
+    this.ds.process(
+      ()=> L.map(station => station.temperature.set({...station.temperature(), value: station.temperature().value+1})),
+      ()=> L.map(station => station.temperature.update(temp => ({...temp, value: temp.value+1}))),
+      ()=> L.map(station => station.temperature.mutate(temp => temp.value = temp.value+1)),
+      ()=> L.push({name: "Grenoble", temperature: signal({value: 225, unit: '°K'})})
+    );
   }
 
 
